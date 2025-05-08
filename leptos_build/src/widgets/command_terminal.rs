@@ -1,6 +1,6 @@
 use std::{io::{self, BufWriter}, sync::mpsc::channel};
 
-use ratatui::{crossterm::{event::{self, Event, KeyCode, KeyEventKind}, execute, terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}}, prelude::{Backend, CrosstermBackend}, style::{Modifier, Style}, text::Line, widgets::{Block, Borders}, Frame, Terminal};
+use ratatui::{crossterm::{event::{self, Event, KeyCode, KeyEventKind}, execute, terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}}, layout::Rect, prelude::{Backend, CrosstermBackend}, style::{Modifier, Style}, text::Line, widgets::{Block, Borders}, Frame, Terminal};
 use tui_term::{vt100::Screen, widget::PseudoTerminal};
 use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
 
@@ -14,7 +14,7 @@ impl CommandTerminal{
         Self
     }
     /// Configure the UI for the CommandTerminal Widget
-    fn ui(f: &mut Frame, screen: &Screen, title: &str)
+    fn ui(f: &mut Frame, screen: &Screen, title: &str, rect: Rect)
     where
         Self: Sized {
     let title = format!("[ Running: {} ]", title);
@@ -25,7 +25,7 @@ impl CommandTerminal{
         .style(Style::default().add_modifier(Modifier::BOLD));
 
     let pseudo_term = PseudoTerminal::new(screen).block(block.clone());
-    f.render_widget(pseudo_term, f.area());
+    f.render_widget(pseudo_term, rect);
 
     }
     /// Configure the terminal to correctly intercept stdout, create a new backend for it, and size correctly
@@ -53,9 +53,9 @@ impl CommandTerminal{
         Ok(())
     }
     /// Runs the CommandTerminal in a loop. This seems a little divorced from the standard Ratatui flow
-    fn run<B: Backend>(&self, terminal: &mut Terminal<B>, screen: &Screen, title: &str) -> io::Result<()> {
+    fn run<B: Backend>(&self, terminal: &mut Terminal<B>, screen: &Screen, title: &str, rect: Rect) -> io::Result<()> {
         loop {
-            terminal.draw(|f| CommandTerminal::ui(f, screen, title))?;
+            terminal.draw(|f| CommandTerminal::ui(f, screen, title, rect))?;
     
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
@@ -69,7 +69,7 @@ impl CommandTerminal{
 }
 
     /// Spawns a new terminal with all the fixings to run the command
-    pub fn spawn_command_terminal(ct: CommandTerminal, state: &State)-> eyre::Result<()>{
+    pub fn spawn_command_terminal(ct: CommandTerminal, state: &State, rect: Rect)-> eyre::Result<()>{
         let (mut terminal, size) = ct.setup_terminal().unwrap();
 
         let pty_system = NativePtySystem::default();
@@ -112,7 +112,7 @@ impl CommandTerminal{
         let output = rx.recv().unwrap();
         parser.process(output.as_bytes());
     
-        (&ct).run(&mut terminal, parser.screen(), "Command Title")?;
+        (&ct).run(&mut terminal, parser.screen(), "Command Title", rect)?;
     
         // restore terminal
         ct.cleanup_terminal(&mut terminal).unwrap();

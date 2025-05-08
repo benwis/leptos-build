@@ -12,7 +12,7 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 
-use super::{app_footer::AppFooter, app_header::AppHeader, command_terminal::CommandTerminal, shell::Shell};
+use super::{app_footer::AppFooter, app_header::AppHeader, shell::Shell};
 
 // Determines the needed layout for each command
 #[derive(Debug, Clone, Default)]
@@ -37,9 +37,7 @@ impl App{
     }
     // draw will create the layout of the App and begin rendering of each widget in assigned areas
     fn draw(&self, frame: &mut Frame) {
-        let layout = Layout::new(Direction::Horizontal,[Constraint::Percentage(50), Constraint::Percentage(50)]).split(frame.area());
-        frame.render_widget(self, layout[0]);
-        frame.render_widget(self, layout[1]);
+        frame.render_widget(self, frame.area());
 
     }
 
