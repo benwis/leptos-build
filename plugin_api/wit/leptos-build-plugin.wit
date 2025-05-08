@@ -3,5 +3,7 @@ package leptos:leptos-build;
 
 world leptos-build-plugin {
 
-  export greeting: func(name: string) -> string;
+  export name: func(name: string) -> string;
+  export run: func(state: State)-> result<(), LeptosBuildPluginError>;
+  export leptos_api_version -> stirng;
 }
