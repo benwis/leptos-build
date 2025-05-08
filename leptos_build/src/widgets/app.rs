@@ -8,14 +8,11 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    style::Stylize,
-    symbols::border,
-    text::{Line, Text},
-    widgets::{Block, Paragraph, StatefulWidget, Widget},
+    widgets::{StatefulWidget, Widget},
     DefaultTerminal, Frame,
 };
 
-use super::shell::Shell;
+use super::{app_footer::AppFooter, app_header::AppHeader, command_terminal::CommandTerminal, shell::Shell};
 
 // Determines the needed layout for each command
 #[derive(Debug, Clone, Default)]
@@ -79,28 +76,11 @@ impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut state = self.state.write();
 
-
-        let title = Line::from(" Counter App Tutorial ".bold());
-        let instructions = Line::from(vec![
-            " Quit ".into(),
-            "<Q> ".blue().bold(),
-        ]);
-        let block = Block::bordered()
-            .title(title.centered())
-            .title_bottom(instructions.centered())
-            .border_set(border::THICK);
-
-        let counter_text = Text::from(vec![Line::from(vec![
-            "Value: ".into(),
-            "YES".to_string().yellow(),
-        ])]);
-
-        let p = Paragraph::new(counter_text)
-            .centered()
-            .block(block)
-            .render(area, buf);
-
-        let shell: Shell = Shell::new();
+        let header = AppHeader::default();
+        let footer = AppFooter::default();
+        // The question is where we determine the configuration for the below
+        
+        let shell: Shell = Shell::new(state.clone(), header, footer);
 
         StatefulWidget::render(&shell, area, buf, &mut state);
     }
