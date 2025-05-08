@@ -1,0 +1,7 @@
+package leptos:leptos-build;
+
+
+world leptos-build-plugin {
+
+  export greeting: func(name: string) -> string;
+}

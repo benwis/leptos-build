@@ -1,0 +1,66 @@
+use wasmtime::{Engine, Result, Store, Config};
+use wasmtime::component::{ResourceTable, Linker, bindgen, Component};
+use wasmtime_wasi::{IoView, WasiCtx, WasiCtxBuilder, WasiView};
+use eyre::Result as EyreResult;
+
+use crate::errors::LeptosBuildError;
+
+pub fn generate_wasi_engine()-> Result<Engine>{
+    let mut config = Config::new();
+    config.async_support(true);
+    config.wasm_component_model(true);
+    config.debug_info(true);
+    Engine::new(&config)
+
+}
+
+pub struct PluginHost{
+    linker: Linker<PluginHostState>,
+    store: Store<PluginHostState>,
+    components: Vec<Component>,
+
+}
+/// Should be able to call plugins like this
+/// ```rust
+/// //Here our `greet` function takes one name parameter,
+/// //but in the Wasmtime embedding API the first argument is always a `Store`.
+/// let greeting = bindings.call_greeting(&mut store, "Ben").await?;
+/// ``````
+pub async fn setup_plugin_host(engine: &Engine)-> EyreResult<PluginHost>{
+    bindgen!({world: "leptos-build-plugin", path: "../plugin_api/wit/leptos-build-plugin.wit", async: true});
+
+    let mut linker = Linker::new(&engine);
+
+    // Add all the WASI extensions to the linker
+    wasmtime_wasi::add_to_linker_async(&mut linker).map_err(|e| LeptosBuildError::WasmtimeError(e))?;
+
+    // ... configure `builder` more to add env vars, args, etc ...
+    let mut builder = WasiCtxBuilder::new();
+    builder.inherit_stdio();
+    let store = Store::new(
+        &engine,
+        PluginHostState {
+            ctx: builder.build(),
+            table: ResourceTable::new(),
+        },
+    );
+    // TODO: Replace component here with some form of discovery
+    let component = Component::from_file(&engine, "./plugins/custom_plugin.wasm").map_err(|e| LeptosBuildError::WasmtimeError(e))?;
+    // TODO: This will have to be done in the main because I can't pass bindings
+    //let bindings = LeptosBuildPlugin::instantiate_async(&mut store, &component, &linker).await;
+
+    Ok(PluginHost { linker, store, components: vec![component] })
+}
+
+
+struct PluginHostState {
+    ctx: WasiCtx,
+    table: ResourceTable,
+}
+
+impl IoView for PluginHostState {
+    fn table(&mut self) -> &mut ResourceTable { &mut self.table }
+}
+impl WasiView for PluginHostState {
+    fn ctx(&mut self) -> &mut WasiCtx { &mut self.ctx }
+}
