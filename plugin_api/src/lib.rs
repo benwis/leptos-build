@@ -4,4 +4,4 @@ pub mod bindings {
     generate!({path: "./wit/leptos-build-plugin.wit", pub_export_macro: true,export_macro_name: "export", });
 }
 
-pub use crate::bindings::{export, Guest as LeptosBuildPlugin};
+pub use crate::bindings::{export, Guest as LeptosBuildPlugin,Plugin,PluginState, LeptosBuildPluginError};

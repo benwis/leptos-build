@@ -1,7 +1,11 @@
+use std::collections::HashMap;
+
+use camino::Utf8PathBuf;
 use wasmtime::{Engine, Result, Store, Config};
 use wasmtime::component::{ResourceTable, Linker, bindgen, Component};
 use wasmtime_wasi::{IoView, WasiCtx, WasiCtxBuilder, WasiView};
 use eyre::Result as EyreResult;
+use plugin_api::Plugin;
 
 use crate::errors::LeptosBuildError;
 
@@ -17,6 +21,7 @@ pub fn generate_wasi_engine()-> Result<Engine>{
 pub struct PluginHost{
     linker: Linker<PluginHostState>,
     store: Store<PluginHostState>,
+    plugins:HashMap<String, Plugin>,
     components: Vec<Component>,
 
 }
@@ -49,7 +54,7 @@ pub async fn setup_plugin_host(engine: &Engine)-> EyreResult<PluginHost>{
     // TODO: This will have to be done in the main because I can't pass bindings
     //let bindings = LeptosBuildPlugin::instantiate_async(&mut store, &component, &linker).await;
 
-    Ok(PluginHost { linker, store, components: vec![component] })
+    Ok(PluginHost { linker, store, components: vec![component], plugins: Default::default() })
 }
 
 
@@ -63,4 +68,20 @@ impl IoView for PluginHostState {
 }
 impl WasiView for PluginHostState {
     fn ctx(&mut self) -> &mut WasiCtx { &mut self.ctx }
+}
+
+// Scan a folder for plugins and add them to a list for clap matching
+async fn load_plugins(plugins_dir: &Utf8PathBuf) -> Result<()>{
+    //let loaded_plugins = HashMap::new();
+
+    // for entry in std::fs::read_dir(plugins_dir).unwrap() {
+    //     let path = entry.unwrap().path();
+    //     if path.extension().map(|e| e == "so").unwrap_or(false) {
+    //         if let Ok(lp) = load_plugin(&path) {
+    //             app = app.subcommand((lp.plugin.clap_command)());
+    //             loaded_plugins.push(lp);
+    //         }
+    //     }
+    //}
+    Ok(())
 }

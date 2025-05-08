@@ -2,14 +2,20 @@ package leptos:leptos-build;
 
 
 world leptos-build-plugin {
-  export plugin-name: func() -> string;
-  export command-name: func() -> string;
+  export info: func() -> plugin;
   export run: func(state: plugin-state)-> result<string, leptos-build-plugin-error>;
   export leptos-api-version: func() -> string;
 
   record plugin-state {
     id: u64,
     name: string,
+    picture: option<list<u8>>,
+  }
+
+    record plugin {
+    name: string,
+    command-name: string,
+    leptos-api-version: string,
     picture: option<list<u8>>,
   }
 
