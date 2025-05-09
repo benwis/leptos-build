@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use color_eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
@@ -14,7 +16,7 @@ pub struct App {
     state: Cli,
     tick_rate: f64,
     frame_rate: f64,
-    components: Vec<Box<dyn Component>>,
+    components: HashMap<String, Box<dyn Component>>,
     should_quit: bool,
     should_suspend: bool,
     mode: Mode,
@@ -32,11 +34,17 @@ pub enum Mode {
 impl App {
     pub fn new(state: &Cli) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
+        let mut components_map: HashMap<String, Box<dyn Component>> = HashMap::new();
+        // Define all components and put them in the HashMap
+        components_map.insert("Home".to_string(), Box::new(Home::new()));
+        components_map.insert("FPS".to_string(), Box::new(FpsCounter::new()));
+
+
         Ok(Self {
             tick_rate: state.tick_rate,
             state: state.clone(),
             frame_rate: state.frame_rate.clone(),
-            components: vec![Box::new(Home::new()), Box::new(FpsCounter::default())],
+            components: components_map,
             should_quit: false,
             should_suspend: false,
             config: Config::new()?,
@@ -54,13 +62,13 @@ impl App {
             .frame_rate(self.frame_rate);
         tui.enter()?;
 
-        for component in self.components.iter_mut() {
+        for component in self.components.values_mut() {
             component.register_action_handler(self.action_tx.clone())?;
         }
-        for component in self.components.iter_mut() {
+        for component in self.components.values_mut() {
             component.register_config_handler(self.config.clone())?;
         }
-        for component in self.components.iter_mut() {
+        for component in self.components.values_mut() {
             component.init(tui.size()?)?;
         }
 
@@ -96,7 +104,7 @@ impl App {
             Event::Key(key) => self.handle_key_event(key)?,
             _ => {}
         }
-        for component in self.components.iter_mut() {
+        for component in self.components.values_mut() {
             if let Some(action) = component.handle_events(Some(event.clone()))? {
                 action_tx.send(action)?;
             }
@@ -146,7 +154,7 @@ impl App {
                 Action::Render => self.render(tui)?,
                 _ => {}
             }
-            for component in self.components.iter_mut() {
+            for component in self.components.values_mut() {
                 if let Some(action) = component.update(action.clone())? {
                     self.action_tx.send(action)?
                 };
@@ -162,15 +170,23 @@ impl App {
     }
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
-        tui.draw(|frame| {
-            for component in self.components.iter_mut() {
-                if let Err(err) = component.draw(frame, frame.area()) {
-                    let _ = self
-                        .action_tx
-                        .send(Action::Error(format!("Failed to draw: {:?}", err)));
-                }
-            }
-        })?;
+
+        tui.draw(|frame|{
+            if let Err(err) = self.components.get_mut("Home").unwrap().draw(frame, frame.area()) {
+                let _ = self
+                    .action_tx
+                    .send(Action::Error(format!("Failed to draw: {:?}", err)));
+            }        })?;
+        // tui.draw(|frame| {
+
+        //     for component in self.components.iter_mut() {
+        //         if let Err(err) = component.draw(frame, frame.area()) {
+        //             let _ = self
+        //                 .action_tx
+        //                 .send(Action::Error(format!("Failed to draw: {:?}", err)));
+        //         }
+        //     }
+        // })?;
         Ok(())
     }
 }

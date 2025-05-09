@@ -1,23 +1,23 @@
 use color_eyre::Result;
-use ratatui::{prelude::*, widgets::*};
+use ratatui::{prelude::*, symbols::border, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::{command_output::CommandOutput, footer::Footer, header::Header, Component};
+use super::Component;
 use crate::{action::Action, config::Config};
 
 #[derive(Default)]
-pub struct Home {
+pub struct Footer {
     command_tx: Option<UnboundedSender<Action>>,
     config: Config,
 }
 
-impl Home {
+impl Footer {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl Component for Home {
+impl Component for Footer {
     fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
         self.command_tx = Some(tx);
         Ok(())
@@ -42,12 +42,14 @@ impl Component for Home {
     }
 
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let layout: [Rect; 3] = Layout::default().direction(Direction::Vertical).constraints([Constraint::Ratio(1,10), Constraint::Ratio(8, 10), Constraint::Ratio(1,10)]).areas(area);
-        Header::new().draw(frame, layout[0])?;
-        CommandOutput::new().draw(frame, layout[1])?;
-        Footer::new().draw(frame, layout[2])?;
-
-
+        let instructions = Line::from(vec![
+            " Quit ".into(),
+            "<Q> ".blue().bold(),
+        ]);
+        let block = Block::bordered()
+        .title(instructions.centered())
+        .border_set(border::THICK);
+        frame.render_widget(block, area);
         Ok(())
     }
 }

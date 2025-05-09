@@ -10,6 +10,9 @@ use crate::{action::Action, config::Config, tui::Event};
 
 pub mod fps;
 pub mod home;
+pub mod header;
+pub mod footer;
+pub mod command_output;
 
 /// `Component` is a trait that represents a visual and interactive element of the user interface.
 ///
