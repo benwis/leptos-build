@@ -1,27 +1,22 @@
-
 use camino::Utf8PathBuf;
-use leptos_build::widgets::app::{App, AppLayout};
-use leptos_build::utils::deps::check_wasm_bindgen_version;
-use leptos_build::{
-    state::State,
-    utils::path::get_current_dir,
-};
-use cargo_manifest::Manifest;
-// use cargo_metadata::MetadataCommand;
 use clap::Parser;
-use eyre::Result;
-use figment::{
-    providers::{Env, Serialized},
-    Figment,
-};
+use color_eyre::Result;
+use figment::{providers::{Env, Serialized}, Figment};
+use leptos_build::{cli::Cli, app::App};
+
+
 
 #[tokio::main]
-async fn main() ->  Result<()> {
-    //eyre::install()?;
+async fn main() -> Result<()> {
+    leptos_build::errors::init()?;
+    leptos_build::logging::init()?;
+
+
+      //eyre::install()?;
     // Parse CLI arguments. Override CLI config values with those in
     // `Config.toml` and `LEPTOS_`-prefixed environment variables.
     let initial_figment = Figment::new()
-        .merge(Serialized::defaults(State::parse()))
+        .merge(Serialized::defaults(Cli::parse()))
         .merge(Env::prefixed("LEPTOS_"));
 
     let manifest_path: Utf8PathBuf = initial_figment
@@ -31,12 +26,11 @@ async fn main() ->  Result<()> {
     // // This will panic and inform the user that their wasm-bindgen version doesn't match.
     // check_wasm_bindgen_version(manifest_path.as_str());
 
-    let state: State = initial_figment
-    .merge(State::figment_file(&manifest_path).select("leptos"))
+    let state: Cli = initial_figment
+    .merge(Cli::figment_file(&manifest_path).select("leptos"))
     .extract()?;
 
-    // Create main App struct
-    let app = App{state: State::into_shared(state), exit: false, layout: AppLayout::Default};
+    let mut app = App::new(&state)?;
 
     // // Block here to ensure App RwLock Guard gets dropped before TUI init
     // {
@@ -101,12 +95,9 @@ async fn main() ->  Result<()> {
     // let default_bin_target = current_platform::CURRENT_PLATFORM;
     // state.opts.bin_opts.bin_target_triple = Some(default_bin_target.to_string());
     // }
-    //println!("State: {state:#?}");
+    //println!("Cli: {state:#?}");
 
     // Begin Ratatui App
-    let mut terminal = ratatui::init();
-    let app_result = app.run(&mut terminal);
-    ratatui::restore();
-    app_result
-
+    app.run().await?;
+    Ok(())
 }

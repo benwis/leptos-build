@@ -1,9 +1,9 @@
-use crate::State;
+use crate::Cli;
 use eyre::Result;
 use shlex::Shlex;
 use xshell::{cmd, Shell};
 
-pub async fn build_all(state: &State) -> Result<()> {
+pub async fn build_all(state: &Cli) -> Result<()> {
     println!("BUILDING!");
 
     if state.opts.lib_only && state.opts.bin_only {
@@ -19,7 +19,7 @@ pub async fn build_all(state: &State) -> Result<()> {
     Ok(())
 }
 
-pub fn build_bin(state: &State) -> Result<()> {
+pub fn build_bin(state: &Cli) -> Result<()> {
     let bin_opts = state.opts.bin_opts.clone();
 
     // We need to check if the bin-cargo-commands length is greater than one word and add the second word to the args if so
@@ -53,7 +53,7 @@ pub fn build_bin(state: &State) -> Result<()> {
     Ok(cmd!(sh, "{bin_cmd} {extra_cmd_args...}").run()?)
 }
 
-pub fn build_lib(state: &State) -> Result<()> {
+pub fn build_lib(state: &Cli) -> Result<()> {
     let lib_opts = state.opts.lib_opts.clone();
 
     // We need to check if the bin-cargo-commands length is greater than one word and add the second word to the args if so

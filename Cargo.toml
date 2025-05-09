@@ -1,3 +1,6 @@
 [workspace]
+members = [
+    "leptos_build",
+    "plugin_api",
+]
 resolver = "2"
-members = ["leptos_build", "plugin_api"]

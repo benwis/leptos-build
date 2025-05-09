@@ -118,8 +118,9 @@ pub struct LibOpts {
 
 #[derive(Debug, Parser, Clone, Serialize, Deserialize, Default)]
 #[clap(version)]
+#[command(author, version = version(), about)]
 #[serde(rename_all = "kebab-case")]
-pub struct State {
+pub struct Cli {
     /// Path to Cargo.toml.
     #[arg(long, default_value= OsStr::new("./Cargo.toml"))]
     pub manifest_path: Utf8PathBuf,
@@ -135,6 +136,14 @@ pub struct State {
     #[arg(long)]
     pub log: Vec<Log>,
 
+    /// Tick rate, i.e. number of ticks per second for ratatui
+    #[arg(short, long, value_name = "FLOAT", default_value_t = 4.0)]
+    pub tick_rate: f64,
+
+    /// Frame rate, i.e. number of frames per second for ratatui
+    #[arg(short, long, value_name = "FLOAT", default_value_t = 60.0)]
+    pub frame_rate: f64,
+
     #[command(flatten)]
     #[serde(flatten)]
     pub opts: Opts,
@@ -143,13 +152,13 @@ pub struct State {
     pub command: Commands,
 }
 
-impl State {
+impl Cli {
     pub fn figment_file(manifest_path: &Utf8PathBuf) -> Figment {
         Figment::new().merge(Toml::file(manifest_path).nested())
     }
 
     /// Construct an `Arc<RwLock<State>>` to be shared across an app
-    pub fn into_shared(self) -> Arc<RwLock<State>>{
+    pub fn into_shared(self) -> Arc<RwLock<Self>>{
         Arc::new(RwLock::new(self))
     }
 }
@@ -190,3 +199,34 @@ pub trait LeptosCommand{
     fn run()-> eyre::Result<()>;
 }
 
+const VERSION_MESSAGE: &str = concat!(
+    env!("CARGO_PKG_VERSION"),
+    "-",
+    env!("VERGEN_GIT_DESCRIBE"),
+    " (",
+    env!("VERGEN_BUILD_DATE"),
+    ")"
+);
+
+pub fn version() -> String {
+    let author = clap::crate_authors!();
+
+    // let current_exe_path = PathBuf::from(clap::crate_name!()).display().to_string();
+    // let config_dir_path = get_config_dir().display().to_string();
+    // let data_dir_path = get_data_dir().display().to_string();
+
+//     format!(
+//         "\
+// {VERSION_MESSAGE}
+
+// Authors: {author}
+
+// Config directory: {config_dir_path}
+// Data directory: {data_dir_path}"
+//     )
+format!(
+    "\
+{VERSION_MESSAGE}
+
+Authors: {author}")
+}

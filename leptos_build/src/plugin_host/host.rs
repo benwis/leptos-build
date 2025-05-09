@@ -17,12 +17,19 @@ pub fn generate_wasi_engine()-> Result<Engine>{
     Engine::new(&config)
 
 }
+/// Plugin wrapper that contains additional info the host needs
+pub struct PluginWrapper{
+    plugin: Plugin,
+    path: Utf8PathBuf,
+}
 
+/// Global storage for wasmtime constants, plugins, and components
 pub struct PluginHost{
     linker: Linker<PluginHostState>,
     store: Store<PluginHostState>,
-    plugins:HashMap<String, Plugin>,
-    components: Vec<Component>,
+    plugins:HashMap<String, PluginWrapper>,
+    components: HashMap<String,Component>,
+
 
 }
 /// Should be able to call plugins like this
@@ -54,7 +61,7 @@ pub async fn setup_plugin_host(engine: &Engine)-> EyreResult<PluginHost>{
     // TODO: This will have to be done in the main because I can't pass bindings
     //let bindings = LeptosBuildPlugin::instantiate_async(&mut store, &component, &linker).await;
 
-    Ok(PluginHost { linker, store, components: vec![component], plugins: Default::default() })
+    Ok(PluginHost { linker, store, components: Default::default(), plugins: Default::default() })
 }
 
 
