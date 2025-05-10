@@ -9,5 +9,6 @@ pub mod cli;
 pub mod command;
 pub mod plugin_host;
 pub mod utils;
+pub mod state;
 // Exports
 use crate::cli::Cli;

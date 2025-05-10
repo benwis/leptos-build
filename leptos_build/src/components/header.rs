@@ -1,14 +1,14 @@
 use color_eyre::Result;
-use ratatui::{prelude::*, symbols::border, widgets::*};
+use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
-use crate::{action::Action, config::Config};
+use crate::{action::Action, state::State};
 
 #[derive(Default)]
 pub struct Header {
     command_tx: Option<UnboundedSender<Action>>,
-    config: Config,
+    state: State,
 }
 
 impl Header {
@@ -23,8 +23,8 @@ impl Component for Header {
         Ok(())
     }
 
-    fn register_config_handler(&mut self, config: Config) -> Result<()> {
-        self.config = config;
+    fn register_state_handler(&mut self, state: State) -> Result<()> {
+        self.state = state;
         Ok(())
     }
 

@@ -2,7 +2,7 @@ use camino::Utf8PathBuf;
 use clap::Parser;
 use color_eyre::Result;
 use figment::{providers::{Env, Serialized}, Figment};
-use leptos_build::{cli::Cli, app::App};
+use leptos_build::{app::App, cli::Cli, command::CommandCollection};
 
 
 
@@ -23,14 +23,17 @@ async fn main() -> Result<()> {
         .extract_inner("manifest-path")
         .expect("manifest_path must be set. This should have defaulted to Cargo.toml");
 
-    // // This will panic and inform the user that their wasm-bindgen version doesn't match.
+    // This will panic and inform the user that their wasm-bindgen version doesn't match.
     // check_wasm_bindgen_version(manifest_path.as_str());
 
-    let state: Cli = initial_figment
+    let cli: Cli = initial_figment
     .merge(Cli::figment_file(&manifest_path).select("leptos"))
     .extract()?;
 
-    let mut app = App::new(&state)?;
+    // TODO: Take stock of and build command Collection
+    let commands = CommandCollection::default();
+
+    let mut app = App::new(cli, commands)?;
 
     // // Block here to ensure App RwLock Guard gets dropped before TUI init
     // {

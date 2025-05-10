@@ -8,14 +8,11 @@ use tokio::sync::mpsc;
 use tracing::{debug, info};
 
 use crate::{
-    action::Action, cli::Cli, components::{fps::FpsCounter, home::Home, Component}, config::Config, tui::{Event, Tui}
+    action::Action, cli::Cli, command::CommandCollection, components::{fps::FpsCounter, home::Home, Component}, config::Config, state::State, tui::{Event, Tui}
 };
 
 pub struct App {
-    config: Config,
-    state: Cli,
-    tick_rate: f64,
-    frame_rate: f64,
+    state: State,
     components: HashMap<String, Box<dyn Component>>,
     should_quit: bool,
     should_suspend: bool,
@@ -32,22 +29,23 @@ pub enum Mode {
 }
 
 impl App {
-    pub fn new(state: &Cli) -> Result<Self> {
+    pub fn new(cli: Cli, commands: CommandCollection) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let mut components_map: HashMap<String, Box<dyn Component>> = HashMap::new();
         // Define all components and put them in the HashMap
         components_map.insert("Home".to_string(), Box::new(Home::new()));
         components_map.insert("FPS".to_string(), Box::new(FpsCounter::new()));
 
+        let config = Config::new()?;
 
+        let state = State::new(cli,config,commands);
+     
         Ok(Self {
-            tick_rate: state.tick_rate,
-            state: state.clone(),
-            frame_rate: state.frame_rate.clone(),
+
+            state,
             components: components_map,
             should_quit: false,
             should_suspend: false,
-            config: Config::new()?,
             mode: Mode::Home,
             last_tick_key_events: Vec::new(),
             action_tx,
@@ -56,17 +54,21 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
+        let cli = self.state.cli.read();
         let mut tui = Tui::new()?
             // .mouse(true) // uncomment this line to enable mouse support
-            .tick_rate(self.tick_rate)
-            .frame_rate(self.frame_rate);
+            .tick_rate(cli.tick_rate)
+            .frame_rate(cli.frame_rate);
         tui.enter()?;
+
+        // Make sure the RwLockReadGuard is dropped 
+        drop(cli);
 
         for component in self.components.values_mut() {
             component.register_action_handler(self.action_tx.clone())?;
         }
         for component in self.components.values_mut() {
-            component.register_config_handler(self.config.clone())?;
+            component.register_state_handler(self.state.clone())?;
         }
         for component in self.components.values_mut() {
             component.init(tui.size()?)?;
@@ -114,7 +116,8 @@ impl App {
 
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
         let action_tx = self.action_tx.clone();
-        let Some(keymap) = self.config.keybindings.get(&self.mode) else {
+        let config = self.state.config.write();
+        let Some(keymap) = config.keybindings.get(&self.mode) else {
             return Ok(());
         };
         match keymap.get(&vec![key]) {

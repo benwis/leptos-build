@@ -1,23 +1,30 @@
 use color_eyre::Result;
-use ratatui::{prelude::*, symbols::border, widgets::*};
+use ratatui::{prelude::*, widgets::*};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Component;
-use crate::{action::Action, config::Config};
+use crate::{action::Action, state::State};
 
 #[derive(Default)]
 pub struct CommandOutput {
     command_tx: Option<UnboundedSender<Action>>,
-    config: Config,
+    state: State,
     command_string: String,
-    lines: Vec<String>,
-    scroll: u16,
+    // First vec determines pane # or tab #, second contains lines for the command
+    lines: Vec<Vec<String>>,
+    scroll: Vec<u16>,
 }
 
 impl CommandOutput {
     pub fn new() -> Self {
-        Self::default()
+        let comm_1 = vec!["Hello".to_string()];
+        let comm_2 = vec!["World".to_string()];
+        Self{
+        lines: vec![comm_1, comm_2],
+        scroll: vec![0, 0],
+        .. Default::default()
     }
+}
 }
 
 impl Component for CommandOutput {
@@ -26,8 +33,8 @@ impl Component for CommandOutput {
         Ok(())
     }
 
-    fn register_config_handler(&mut self, config: Config) -> Result<()> {
-        self.config = config;
+    fn register_state_handler(&mut self, state: State) -> Result<()> {
+        self.state = state;
         Ok(())
     }
 
@@ -45,14 +52,42 @@ impl Component for CommandOutput {
     }
 
     fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+
+        match &self.lines.len(){
+            0 => panic!("You must have a command to show a CommandOutput"),
+            1 => {
+                let layout: [Rect; 1] = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(100)]).areas(area);
+                let text = self.lines.get(0).unwrap().join("\n");
+                let para = Paragraph::new(text)
+                .block(Block::default().title(self.command_string.clone()).borders(Borders::ALL))
+                .wrap(Wrap { trim: false })
+                .scroll((self.scroll[0], 0));
+                frame.render_widget(para, layout[0]);
+
+            }, 
+            2 => {
+                let layout: [Rect; 2] = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).areas(area);
+                let text_0 = self.lines.get(0).unwrap().join("\n");
+                let text_1 = self.lines.get(1).unwrap().join("\n");
+
+                let para_0 = Paragraph::new(text_0)
+                    .block(Block::default().title(self.command_string.clone()).borders(Borders::ALL))
+                    .wrap(Wrap { trim: false })
+                    .scroll((self.scroll[0], 0));
+                frame.render_widget(para_0, layout[0]);
+
+            
+                let para_1 = Paragraph::new(text_1)
+                    .block(Block::default().title(self.command_string.clone()).borders(Borders::ALL))
+                    .wrap(Wrap { trim: false })
+                    .scroll((self.scroll[1], 0));
+                frame.render_widget(para_1, layout[1]);
+            },
+            _ => panic!("2? You can output data from more than 2!")
+        }
         
-        let text = self.lines.join("\n");
         
-        let para = Paragraph::new(text)
-            .block(Block::default().title(self.command_string.clone()).borders(Borders::ALL))
-            .wrap(Wrap { trim: false })
-            .scroll((self.scroll, 0));
-        frame.render_widget(para, area);
+        
         Ok(())
     }
 }

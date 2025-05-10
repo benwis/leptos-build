@@ -6,7 +6,7 @@ use ratatui::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{action::Action, config::Config, tui::Event};
+use crate::{action::Action,state::State, tui::Event};
 
 pub mod fps;
 pub mod home;
@@ -32,17 +32,17 @@ pub trait Component {
         let _ = tx; // to appease clippy
         Ok(())
     }
-    /// Register a configuration handler that provides configuration settings if necessary.
+    /// Register a configuration handler that provides the app state if necessary.
     ///
     /// # Arguments
     ///
-    /// * `config` - Configuration settings.
+    /// * `state` - Application state.
     ///
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    fn register_config_handler(&mut self, config: Config) -> Result<()> {
-        let _ = config; // to appease clippy
+    fn register_state_handler(&mut self, state: State) -> Result<()> {
+        let _ = state; // to appease clippy
         Ok(())
     }
     /// Initialize the component with a specified area if necessary.
